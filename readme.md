@@ -504,7 +504,7 @@ pitch.py
 
 # 9. Wireless Joystick Control
 
-![Wireless Character Control](WirelessJoystockcontrol/character-control.png)
+![Wireless Character Control](JoyStick_game/joystick.jpg)
 
 ## Folder Path
 
