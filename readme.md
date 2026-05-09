@@ -462,7 +462,7 @@ game.py
 ## Included Image
 
 ```md
-![MPU6050 Module](MPU6050/sketch_sep24a/mpu5060.jpeg)
+![MPU6050 Module](MPU6050/mpu5060.jpeg)
 ```
 
 ## Concepts Covered
