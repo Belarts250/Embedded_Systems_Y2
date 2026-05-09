@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connected IoT Dashboard</title>
+
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
+
+<style>
+:root {
+    --primary: #401328;
+    --background: #FFFFED;
+    --card: #fffdf4;
+    --border: rgba(64, 19, 40, 0.15);
+    --text-main: #2b0d1b;
+    --text-muted: rgba(64, 19, 40, 0.65);
+    --glow: rgba(64, 19, 40, 0.35);
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(180deg, #FFFFED 0%, #fff9dc 100%);
+    color: var(--text-main);
+}
+
+.app { max-width: 1200px; margin: auto; padding: 32px 24px 48px; }
+
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 36px; }
+header h1 { font-size: 1.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 12px; }
+
+.status { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 0 20px var(--glow); font-size: 0.85rem; font-weight: 600; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 12px var(--primary); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 36px; }
+
+.card { background: var(--card); border-radius: 20px; padding: 26px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(64, 19, 40, 0.12); display: flex; flex-direction: column; }
+
+.card-title { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+
+.metric { font-size: 3.2rem; font-weight: 700; color: var(--primary); }
+.unit { font-size: 1.4rem; opacity: 0.6; }
+.meta { margin-top: auto; display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); }
+
+.controls { display: flex; gap: 16px; }
+.btn { flex: 1; border-radius: 14px; padding: 14px; border: 1px solid var(--border); background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.btn:hover { background: var(--primary); color: #FFFFED; }
+.btn.active-state { background: var(--primary); color: #FFFFED; box-shadow: 0 0 18px var(--glow); }
+
+.led-state { margin-top: 14px; text-align: center; font-size: 0.85rem; }
+
+.chart-card { margin-top: 20px; background: radial-gradient(circle at top, rgba(64,19,40,0.15), transparent 60%); }
+.chart-wrapper { height: 380px; width: 100%; }
+.chart-wrapper canvas { width: 100% !important; height: 100% !important; }
+
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+    <h1><i class="bi bi-wifi"></i> Connected Environment</h1>
+    <div class="status" id="status-container">
+        <div class="status-dot"></div>
+        <span id="mqtt-status-text">Connecting...</span>
+    </div>
+</header>
+
+<section class="metrics">
+    <div class="card">
+        <div class="card-title"><i class="bi bi-thermometer-half"></i> Temperature</div>
+        <div class="metric"><span id="temperature">--</span><span class="unit">°C</span></div>
+        <div class="meta"><span>DHT Sensor</span><span id="ts-temp">Waiting…</span></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><i class="bi bi-moisture"></i> Humidity</div>
+        <div class="metric"><span id="humidity">--</span><span class="unit">%</span></div>
+        <div class="meta"><span>DHT Sensor</span><span id="ts-hum">Waiting…</span></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><i class="bi bi-lightbulb"></i> LED Control</div>
+        <div class="controls">
+            <button class="btn" id="led-on">ON</button>
+            <button class="btn" id="led-off">OFF</button>
+        </div>
+        <div class="led-state">State: <strong id="led-state">UNKNOWN</strong></div>
+    </div>
+</section>
+
+<section class="card chart-card">
+    <div class="card-title"><i class="bi bi-activity"></i> Live Signal</div>
+    <div class="chart-wrapper">
+        <canvas id="sensor-chart"></canvas>
+    </div>
+</section>
+
+</div>
+
+<script>
+// ------------------- MQTT -------------------
+const broker = "157.173.101.159";
+const port = 9001;
+const clientId = "web_" + Math.random().toString(16).substr(2, 8);
+const client = new Paho.MQTT.Client(broker, port, clientId);
+
+client.onConnectionLost = () => { document.getElementById("mqtt-status-text").innerText = "Disconnected"; };
+client.onMessageArrived = messageHandler;
+
+function messageHandler(message) {
+    if (message.destinationName === "sensors_belise/dht") {
+        const data = JSON.parse(message.payloadString);
+        const now = Date.now();
+
+        // Update UI
+        document.getElementById("temperature").innerText = data.temperature.toFixed(1);
+        document.getElementById("humidity").innerText = data.humidity.toFixed(0);
+        document.getElementById("ts-temp").innerText = new Date(now).toLocaleTimeString();
+        document.getElementById("ts-hum").innerText = new Date(now).toLocaleTimeString();
+
+        // Update chart
+        sensorChart.data.datasets[0].data.push({ x: now, y: data.temperature });
+        sensorChart.data.datasets[1].data.push({ x: now, y: data.humidity });
+    }
+    if (message.destinationName === "control_belise/led/status") {
+        updateLEDUI(message.payloadString);
+    }
+}
+
+client.connect({
+    useSSL: false,
+    timeout: 3,
+    onSuccess: () => {
+        document.getElementById("mqtt-status-text").innerText = "Live Connected";
+        client.subscribe("sensors_belise/dht");
+        client.subscribe("control_belise/led/status");
+    }
+});
+
+// LED buttons
+document.getElementById("led-on").onclick = () => { client.send("control_belise/led", "ON"); };
+document.getElementById("led-off").onclick = () => { client.send("control_belise/led", "OFF"); };
+
+function updateLEDUI(state) {
+    document.getElementById("led-state").innerText = state;
+    if(state === "ON") {
+        document.getElementById("led-on").classList.add("active-state");
+        document.getElementById("led-off").classList.remove("active-state");
+    } else {
+        document.getElementById("led-off").classList.add("active-state");
+        document.getElementById("led-on").classList.remove("active-state");
+    }
+}
+
+// ------------------- CHART -------------------
+const ctx = document.getElementById("sensor-chart").getContext("2d");
+
+// Gradients
+const gradientTemp = ctx.createLinearGradient(0, 0, 0, 380);
+gradientTemp.addColorStop(0, "rgba(255,87,51,0.4)");
+gradientTemp.addColorStop(1, "rgba(255,87,51,0)");
+
+const gradientHum = ctx.createLinearGradient(0, 0, 0, 380);
+gradientHum.addColorStop(0, "rgba(51,123,255,0.4)");
+gradientHum.addColorStop(1, "rgba(51,123,255,0)");
+
+const sensorChart = new Chart(ctx, {
+    type: "line",
+    plugins: [ChartStreaming],
+    data: {
+        datasets: [
+            { label: "Temperature (°C)", data: [], borderColor: "#FF5733", backgroundColor: gradientTemp, fill: true, pointRadius: 0, tension: 0.3 },
+            { label: "Humidity (%)", data: [], borderColor: "#337BFF", backgroundColor: gradientHum, fill: true, pointRadius: 0, tension: 0.3 }
+        ]
+    },
+    options: {
+        responsive: true,
+        animation: false,
+        interaction: { mode: 'nearest', intersect: false },
+        scales: {
+            x: { type: "realtime", realtime: { duration: 20000, refresh: 1000, delay: 1000 }, title: { display: true, text: "Time" } },
+            y: { beginAtZero: true }
+        },
+        plugins: { legend: { position: "top" } }
+    }
+});
+</script>
+
+</body>
+</html>
