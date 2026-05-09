@@ -436,7 +436,7 @@ C --> D[Servo Motor]
 
 # 7. MPU6050 Experiments
 
-![MPU6050 Sensor Module](MPU6050/sketch_sep24a/mpu5060.jpeg)
+![MPU6050 Sensor Module](MPU6050/mpu5060.jpeg)
 
 ## Folder Path
 
