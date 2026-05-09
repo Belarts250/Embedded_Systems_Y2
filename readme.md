@@ -73,7 +73,7 @@ EMBEDDED SYSTEMS Y2/
 
 # 1. Control LED via Bluetooth
 
-![Bluetooth LED Control](Control-led-via-bluetooth/bluetooth-led.png)
+![Bluetooth LED Control](images/bluetooth-led.png)
 
 ## Overview
 
@@ -236,7 +236,7 @@ The project focuses on:
 
 # 4. JoyStick Game
 
-![Joystick Game](JoyStick_game/joystick-game.png)
+![Joystick Game](JoyStick_game/joystick.jpg)
 
 ## Folder Path
 
@@ -297,7 +297,7 @@ D --> E[Character Movement]
 
 # 5. Joystick Bluetooth Control
 
-![Wireless Joystick Control](joystick-bluetooth/joystick/wireless-controller.png)
+![Wireless Joystick Control](images/wireless-controller.png)
 
 ## Folder Path
 
@@ -378,7 +378,7 @@ D --> E[Game Control]
 
 # 6. Joystick Servo Control
 
-![Joystick Servo Control](JoystickServo control/joystick-servo/servo-control.png)
+![Joystick Servo Control](images/servo-control.png)
 
 ## Folder Path
 
@@ -577,9 +577,9 @@ C --> D[2D and 3D Character]
 | --------------------- | ------------------------------------------------- |
 | Bluetooth LED Control | ![Bluetooth](images/bluetooth-led.png)            |
 | Pitch Roll Yaw System | ![Pitch Roll Yaw](images/pitch-roll-yaw-demo.png) |
-| Joystick Game         | ![Joystick Game](images/joystick-game.png)        |
+| Joystick Game         | ![Joystick Game](JoyStick_game/joystick.jpg)        |
 | Servo Control         | ![Servo](images/servo-control.png)                |
-| MPU6050 Module        | ![MPU6050](images/mpu6050-module.png)             |
+| MPU6050 Module        | ![MPU6050](MPU6050/mpu5060.jpeg)             |
 | Wireless Controller   | ![Wireless](images/wireless-controller.png)       |
 
 ---
@@ -604,7 +604,7 @@ images/
 Example image usage inside README:
 
 ```md
-![Joystick Game](images/joystick-game.png)
+![Joystick Game](JoyStick_game/joystick.jpg)
 ```
 
 ---
